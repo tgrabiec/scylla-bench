@@ -9,6 +9,9 @@ import (
 
 	"github.com/codahale/hdrhistogram"
 	"github.com/gocql/gocql"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 type RateLimiter interface {
@@ -132,7 +135,7 @@ func MergeResults(results []chan Result) (bool, *MergedResult) {
 	return final, result
 }
 
-func RunConcurrently(maximumRate int, workload func(id int, resultChannel chan Result, rateLimiter RateLimiter)) *MergedResult {
+func RunConcurrently(name string, maximumRate int, workload func(id int, resultChannel chan Result, rateLimiter RateLimiter)) *MergedResult {
 	var timeOffsetUnit int64
 	if maximumRate != 0 {
 		timeOffsetUnit = int64(time.Second) / int64(maximumRate)
@@ -155,9 +158,40 @@ func RunConcurrently(maximumRate int, workload func(id int, resultChannel chan R
 		}(i)
 	}
 
+	lat_max := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "lat_max",
+		Help: "Highest latency",
+	})
+
+	lat_99 := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "lat_99",
+		Help: "99th percentile latency",
+	})
+
+	lat_90 := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "lat_90",
+		Help: "90th percentile latency",
+	})
+
+	lat_50 := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "lat_50",
+		Help: "50th percentile latency",
+	})
+
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(lat_max, lat_99, lat_90, lat_50)
+	pusher := push.New("http://127.0.0.1:9091", name).Gatherer(registry)
+
 	final, result := MergeResults(results)
 	for !final {
 		result.Time = time.Now().Sub(startTime)
+
+		lat_max.Set(float64(result.Latency.Max()))
+		lat_99.Set(float64(result.Latency.ValueAtQuantile(99)))
+		lat_90.Set(float64(result.Latency.ValueAtQuantile(90)))
+		lat_50.Set(float64(result.Latency.ValueAtQuantile(50)))
+		pusher.Push()
+
 		PrintPartialResult(result)
 		final, result = MergeResults(results)
 	}

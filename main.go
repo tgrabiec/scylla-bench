@@ -142,6 +142,7 @@ func main() {
 
 	var writeRate int64
 	var distribution string
+	var name string
 
 	flag.StringVar(&mode, "mode", "", "operating mode: write, read, counter_update, counter_read")
 	flag.StringVar(&workload, "workload", "", "workload: sequential, uniform, timeseries")
@@ -150,6 +151,7 @@ func main() {
 	flag.DurationVar(&timeout, "timeout", 5*time.Second, "request timeout")
 
 	flag.StringVar(&nodes, "nodes", "127.0.0.1", "nodes")
+	flag.StringVar(&name, "name", "scylla_bench", "Name of this process for prometheus metrics")
 	flag.BoolVar(&clientCompression, "client-compression", true, "use compression for client-coordinator communication")
 	flag.IntVar(&concurrency, "concurrency", 16, "number of used goroutines")
 	flag.IntVar(&connectionCount, "connection-count", 4, "number of connections")
@@ -317,7 +319,7 @@ func main() {
 		fmt.Println("\ntime\t\toperations/s\trows/s\t\terrors")
 	}
 
-	result := RunConcurrently(maximumRate, func(i int, resultChannel chan Result, rateLimiter RateLimiter) {
+	result := RunConcurrently(name, maximumRate, func(i int, resultChannel chan Result, rateLimiter RateLimiter) {
 		GetMode(mode)(session, resultChannel, GetWorkload(workload, i, partitionOffset, mode, writeRate, distribution), rateLimiter)
 	})
 
