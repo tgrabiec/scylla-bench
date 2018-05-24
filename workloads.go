@@ -107,16 +107,9 @@ func NewTimeSeriesWriter(threadId int, threadCount int, pkCount int64, ckCount i
 
 func (tsw *TimeSeriesWrite) NextPartitionKey() int64 {
 	tsw.PkPosition += tsw.PkStride
-	if tsw.PkPosition >= tsw.PkCount {
-		tsw.PkPosition = tsw.PkOffset
-		tsw.CkPosition++
-		if tsw.CkPosition >= tsw.CkCount {
-			tsw.PkGeneration++
-			tsw.CkPosition = 0
-		}
-	}
+	tsw.CkPosition += 1;
 	tsw.MoveToNextPartition = false
-	return tsw.PkPosition<<32 | tsw.PkGeneration
+	return tsw.PkPosition % tsw.PkCount
 }
 
 func (tsw *TimeSeriesWrite) NextClusteringKey() int64 {
