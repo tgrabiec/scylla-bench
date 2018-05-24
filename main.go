@@ -51,10 +51,10 @@ func PrepareDatabase(session *gocql.Session, replicationFactor int) {
 		log.Fatal(err)
 	}
 
-	err = session.Query("CREATE TABLE IF NOT EXISTS " + keyspaceName + "." + counterTableName + " (pk bigint, ck bigint, c1 counter, c2 counter, c3 counter, c4 counter, c5 counter, PRIMARY KEY(pk, ck)) WITH compression = { }").Exec()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = session.Query("CREATE TABLE IF NOT EXISTS " + keyspaceName + "." + counterTableName + " (pk bigint, ck bigint, c1 counter, c2 counter, c3 counter, c4 counter, c5 counter, PRIMARY KEY(pk, ck)) WITH compression = { }").Exec()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
 
 func GetWorkload(name string, threadId int, partitionOffset int64, mode string, writeRate int64, distribution string) WorkloadGenerator {
